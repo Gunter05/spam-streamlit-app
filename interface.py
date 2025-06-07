@@ -1,25 +1,8 @@
 import streamlit as st
 import pickle
-import string
-import nltk
-from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
-
-# Chargement des objets
-model = pickle.load(open("model_nb.pkl", "rb"))
-vectorizer = pickle.load(open("tfidf_vectorizer.pkl", "rb"))
-stop_words = set(stopwords.words("english"))
-
-# Fonction de nettoyage
-def clean_text(text):
-    text = text.lower()
-    text = ''.join([char for char in text if char not in string.punctuation])
-    words = text.split()
-    words = [word for word in words if word not in stop_words]
-    return ' '.join(words)
 
 # Interface
 
@@ -36,7 +19,7 @@ message = st.text_area("✍ Écris un message SMS ou email à analyser :", heigh
 # prediction via api
 st.markdown("### 🔌 Analyse via API Flask locale")
 
-api_url = "http://127.0.0.1:5000/predict"
+api_url = "https://spam-api-q58t.onrender.com/predict"
 
 if st.button("🔍 Envoyer à l'API Flask"):
     if message.strip() == "":
