@@ -43,32 +43,6 @@ if st.button("🔍 Envoyer à l'API Flask"):
         except Exception as e:
             st.error(f"❌ Impossible de contacter l'API. Détail : {e}")
 
-# bouton de prédiction
-if st.button("🔍 Analyser le message"):
-    if message.strip() == "":
-        st.warning("Merci d’écrire un message à analyser.")
-    else:
-        cleaned = clean_text(message)
-        vect = vectorizer.transform([cleaned])
-        prediction = model.predict(vect)[0]
-        proba = model.predict_proba(vect)[0]
-
-        #resultat
-        if prediction == 1:
-            st.error("🚨 Ce message est probablement un SPAM.")
-        else:
-            st.success("✅ Ce message est probablement légitime (HAM).")
-
-        #probabilités
-        st.markdown("### 📊 Probabilités de prédiction :")
-        st.progress(int(proba[1] * 100))
-        st.write(f"SPAM : {proba[1]*100:.2f}%")
-        st.write(f"HAM : {proba[0]*100:.2f}%")
-
-        #pied de page
-        st.markdown("---")
-        st.markdown("🔬 Projet de détection de SPAM — Étudiant(e) IA")
-
 # import de fichier
 st.markdown("---")
 st.subheader("📂 Analyser des messages depuis un fichier .txt")
