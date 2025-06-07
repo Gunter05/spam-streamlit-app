@@ -25,7 +25,7 @@ st.markdown("### 🔌 Analyse via API Flask locale")
 
 api_url = "https://spam-api-q58t.onrender.com/predict"
 
-if st.button("🔍 Envoyer à l'API Flask"):
+if st.button("🔍 Analyser le message"):
     if message.strip() == "":
         st.warning("Merci d’écrire un message à analyser.")
     else:
