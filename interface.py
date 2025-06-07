@@ -21,8 +21,6 @@ st.markdown("Ce système utilise un modèle de Machine Learning pour prédire si
 message = st.text_area("✍ Écris un message SMS ou email à analyser :", height=150)
 
 # prediction via api
-st.markdown("### 🔌 Analyse via API Flask locale")
-
 api_url = "https://spam-api-q58t.onrender.com/predict"
 
 if st.button("🔍 Analyser le message"):
