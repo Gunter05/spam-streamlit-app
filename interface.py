@@ -14,18 +14,18 @@ import requests
 st.set_page_config(page_title="Détection de SPAM par IA", page_icon="📨", layout="centered")
 
 # en-tête
-st.title("📨 Détecteur de SPAM par IA")
-st.markdown("Ce système utilise un modèle de Machine Learning pour prédire si un message est un SPAM ou non.")
+st.title("📨 AI-powered SPAM detector")
+st.markdown("This system uses a Machine Learning model to predict whether a message is SPAM or not.")
 
 # zone de saisie
-message = st.text_area("✍ Écris un message SMS ou email à analyser :", height=150)
+message = st.text_area("✍ Write an SMS or email to analyze. :", height=150)
 
 # prediction via api
 api_url = "https://spam-api-q58t.onrender.com/predict"
 
-if st.button("🔍 Analyser le message"):
+if st.button("🔍 Analyze the message"):
     if message.strip() == "":
-        st.warning("Merci d’écrire un message à analyser.")
+        st.warning("Thank you for writing a message to analyze.")
     else:
         try:
             response = requests.post(api_url, json={"message": message})
@@ -37,15 +37,15 @@ if st.button("🔍 Analyser le message"):
                 st.write(f"SPAM : {result['probabilities']['SPAM'] * 100:.2f}%")
                 st.write(f"HAM : {result['probabilities']['HAM'] * 100:.2f}%")
             else:
-                st.error(f"Erreur de l’API : {response.status_code} - {response.text}")
+                st.error(f"API error : {response.status_code} - {response.text}")
         except Exception as e:
-            st.error(f"❌ Impossible de contacter l'API. Détail : {e}")
+            st.error(f"❌ Unable to contact the API. Detail : {e}")
 
 # import de fichier
 st.markdown("---")
-st.subheader("📂 Analyser des messages depuis un fichier .txt")
+st.subheader("📂 Analyze messages from a .txt file")
 
-uploaded_file = st.file_uploader("Téléverse un fichier texte (.txt) contenant des messages, un par ligne :", type=["txt"])
+uploaded_file = st.file_uploader("Upload a text file (.txt) containing messages, one per line :", type=["txt"])
 
 if uploaded_file is not None:
     #lire les lignes du fichier
@@ -53,7 +53,7 @@ if uploaded_file is not None:
     messages = [line.strip() for line in lines if line.strip() != ""]
 
     if not messages:
-        st.warning("Le fichier semble vide ou mal formaté.")
+        st.warning("The file appears to be empty or incorrectly formatted.")
     else:
         #nettoyage + vectorisation
         cleaned_messages = [clean_text(msg) for msg in messages]
@@ -64,20 +64,20 @@ if uploaded_file is not None:
             "Message": messages,
             "Résultat": ["SPAM" if pred == 1 else "HAM" for pred in predictions]
         })
-        st.success(f"{len(messages)} messages analysés.")
+        st.success(f"{len(messages)} Analyzed messages..")
         st.dataframe(results_df, use_container_width=True)
         #visualisation du nombre de SPAM vs HAM
-        st.markdown("### Répartition des messages classés")
-        count_spam = (results_df["Résultat"] == "SPAM").sum()
-        count_ham = (results_df["Résultat"] == "HAM").sum()
+        st.markdown("### Distribution of classified messages")
+        count_spam = (results_df["Result"] == "SPAM").sum()
+        count_ham = (results_df["Result"] == "HAM").sum()
         fig, ax = plt.subplots()
         ax.pie([count_ham, count_spam], labels=["HAM", "SPAM"], colors=["green", "red"], autopct='%1.1f%%')
-        ax.set_title("Répartition des prédictions")
+        ax.set_title("Distribution of predictions.")
         st.pyplot(fig)
         #telecharger les resultats ?
         st.download_button(
-            label="📥 Télécharger les résultats (CSV)",
+            label="📥 Download the results (CSV)",
             data=results_df.to_csv(index=False).encode('utf-8'),
-            file_name="resultats_spam.csv",
+            file_name="results_spam.csv",
             mime="text/csv"
         )
