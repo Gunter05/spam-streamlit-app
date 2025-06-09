@@ -4,136 +4,80 @@ import subprocess
 subprocess.run(["pip", "install", "-r", "requirements.txt"])
 
 import streamlit as st
-import string
-from nltk.corpus import stopwords
 import pandas as pd
 import matplotlib.pyplot as plt
 import requests
-
-# Chargement des stopwords
-stop_words = set(stopwords.words("english"))
-
-# Fonction de nettoyage
-def clean_text(text):
-    text = text.lower()
-    text = ''.join([char for char in text if char not in string.punctuation])
-    words = text.split()
-    words = [word for word in words if word not in stop_words]
-    return ' '.join(words)
 
 # Interface
 
 # configuration de la page
 st.set_page_config(page_title="Détection de SPAM par IA", page_icon="📨", layout="centered")
+
+# en-tête
 st.title("📨 AI-powered SPAM detector")
 st.markdown("This system uses a Machine Learning model to predict whether a message is SPAM or not.")
 
 # zone de saisie
-message = st.text_area("✍ Write an SMS to analyze:", height=150)
+message = st.text_area("✍ Write an SMS or email to analyze. :", height=150)
 
 # prediction via api
-api_url = "http://127.0.0.1:5000/predict"
+api_url = "https://spam-api-q58t.onrender.com/predict"
 
 if st.button("🔍 Analyze the message"):
     if message.strip() == "":
-        st.warning("Please write a message.")
+        st.warning("Thank you for writing a message to analyze.")
     else:
         try:
             response = requests.post(api_url, json={"message": message})
             if response.status_code == 200:
                 result = response.json()
-                st.write("✅ Result :", result["prediction"])
-                st.write("📊 Probabilities :")
+                st.write("✅ Résultat :", result["prediction"])
+                st.write("📊 Probabilités :")
                 st.progress(int(result["probabilities"]["SPAM"] * 100))
                 st.write(f"SPAM : {result['probabilities']['SPAM'] * 100:.2f}%")
                 st.write(f"HAM : {result['probabilities']['HAM'] * 100:.2f}%")
             else:
                 st.error(f"API error : {response.status_code} - {response.text}")
         except Exception as e:
-            st.error(f"❌ Could not contact API. Detail : {e}")
+            st.error(f"❌ Unable to contact the API. Detail : {e}")
 
-# --------------------------
-# PARTIE 2 : fichier .txt
-# --------------------------
+# import de fichier
 st.markdown("---")
 st.subheader("📂 Analyze messages from a .txt file")
 
-uploaded_file = st.file_uploader("Upload a .txt file with one message per line:", type=["txt"])
-
-def basic_clean(text):
-    text = text.lower()
-    text = ''.join([c for c in text if c not in string.punctuation])
-    return text
+uploaded_file = st.file_uploader("Upload a text file (.txt) containing messages, one per line :", type=["txt"])
 
 if uploaded_file is not None:
+    #lire les lignes du fichier
     lines = uploaded_file.read().decode("utf-8").splitlines()
     messages = [line.strip() for line in lines if line.strip() != ""]
 
     if not messages:
         st.warning("The file appears to be empty or incorrectly formatted.")
     else:
-        predictions = []
-
-        with st.spinner("Analyzing messages..."):
-            for msg in messages:
-                try:
-                    response = requests.post(api_url, json={"message": msg})
-                    if response.status_code == 200:
-                        result = response.json()
-                        predictions.append(result["prediction"])
-                    else:
-                        predictions.append("Erreur")
-                except Exception as e:
-                    predictions.append("Erreur")
-
-        # Affichage des résultats
+        #nettoyage + vectorisation
+        cleaned_messages = [clean_text(msg) for msg in messages]
+        vect_messages = vectorizer.transform(cleaned_messages)
+        predictions = model.predict(vect_messages)
+        #resultats dans un tableau
         results_df = pd.DataFrame({
             "Message": messages,
-            "Prediction": predictions
+            "Résultat": ["SPAM" if pred == 1 else "HAM" for pred in predictions]
         })
-
-        st.success(f"{len(messages)} messages analyzed.")
+        st.success(f"{len(messages)} Analyzed messages..")
         st.dataframe(results_df, use_container_width=True)
-
-        # Graphe circulaire
-        count_spam = results_df["Prediction"].value_counts().get("SPAM", 0)
-        count_ham = results_df["Prediction"].value_counts().get("HAM", 0)
-
+        #visualisation du nombre de SPAM vs HAM
+        st.markdown("### Distribution of classified messages")
+        count_spam = (results_df["Result"] == "SPAM").sum()
+        count_ham = (results_df["Result"] == "HAM").sum()
         fig, ax = plt.subplots()
-        ax.pie([count_ham, count_spam], labels=["HAM", "SPAM"],
-               colors=["green", "red"], autopct='%1.1f%%')
-        ax.set_title("Spam vs Ham Messages")
+        ax.pie([count_ham, count_spam], labels=["HAM", "SPAM"], colors=["green", "red"], autopct='%1.1f%%')
+        ax.set_title("Distribution of predictions.")
         st.pyplot(fig)
-
-        # Téléchargement CSV
+        #telecharger les resultats ?
         st.download_button(
             label="📥 Download the results (CSV)",
-            data=results_df.to_csv(index=False).encode("utf-8"),
-            file_name="spam_results.csv",
+            data=results_df.to_csv(index=False).encode('utf-8'),
+            file_name="results_spam.csv",
             mime="text/csv"
         )
-
-# --------------------------
-# PARTIE 3 : historique 
-# --------------------------
-st.markdown("---")
-st.subheader("🧾 Message History")
-
-filter_option = st.selectbox("Filter by prediction:", ["All", "SPAM only", "HAM only"])
-
-# Appliquer le filtre
-if filter_option == "SPAM only":
-    filtered = [m for m in st.session_state.history if m["Prediction"] == "SPAM"]
-elif filter_option == "HAM only":
-    filtered = [m for m in st.session_state.history if m["Prediction"] == "HAM"]
-else:
-    filtered = st.session_state.history
-
-# Affichage sous forme de tableau
-if filtered:
-    df_history = pd.DataFrame(filtered)
-    st.dataframe(df_history, use_container_width=True)
-    st.download_button("📥 Download history (CSV)", df_history.to_csv(index=False).encode("utf-8"),
-                       "history_spam.csv", mime="text/csv")
-else:
-    st.info("No messages to display yet.")
