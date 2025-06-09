@@ -11,21 +11,21 @@ import requests
 # Interface
 
 # configuration de la page
-st.set_page_config(page_title="Détection de SPAM par IA", page_icon="📨", layout="centered")
+st.set_page_config(page_title="AI-powered SPAM detector", page_icon="📨", layout="centered")
 
 # en-tête
 st.title("📨 AI-powered SPAM detector")
 st.markdown("This system uses a Machine Learning model to predict whether a message is SPAM or not.")
 
 # zone de saisie
-message = st.text_area("✍ Write an SMS or email to analyze. :", height=150)
+message = st.text_area("✍ Write an SMS to analyze :", height=150)
 
 # prediction via api
 api_url = "https://spam-api-q58t.onrender.com/predict"
 
 if st.button("🔍 Analyze the message"):
     if message.strip() == "":
-        st.warning("Thank you for writing a message to analyze.")
+        st.warning("Please write a message.")
     else:
         try:
             response = requests.post(api_url, json={"message": message})
@@ -55,10 +55,19 @@ if uploaded_file is not None:
     if not messages:
         st.warning("The file appears to be empty or incorrectly formatted.")
     else:
-        #nettoyage + vectorisation
-        cleaned_messages = [clean_text(msg) for msg in messages]
-        vect_messages = vectorizer.transform(cleaned_messages)
-        predictions = model.predict(vect_messages)
+        predictions = []
+
+        with st.spinner("Analyzing messages..."):
+            for msg in messages:
+                try:
+                    response = requests.post(api_url, json={"message": msg})
+                    if response.status_code == 200:
+                        result = response.json()
+                        predictions.append(result["prediction"])
+                    else:
+                        predictions.append("Error")
+                except Exception as e:
+                    predictions.append("Error")
         #resultats dans un tableau
         results_df = pd.DataFrame({
             "Message": messages,
@@ -66,7 +75,7 @@ if uploaded_file is not None:
         })
         st.success(f"{len(messages)} Analyzed messages..")
         st.dataframe(results_df, use_container_width=True)
-        #visualisation du nombre de SPAM vs HAM
+        #visualisation du nombre de SPAM vs HAM, garphe circulaire
         st.markdown("### Distribution of classified messages")
         count_spam = (results_df["Result"] == "SPAM").sum()
         count_ham = (results_df["Result"] == "HAM").sum()
